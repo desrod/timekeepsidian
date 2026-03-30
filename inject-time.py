@@ -5,13 +5,13 @@ import json
 import os
 import re
 import sys
-import time
+from datetime import timezone
 
 # You will need to adjust this naming convention, my notes are
 # named '2026-03-29-Sunday.md' for example
 VAULT_PATH = os.environ.get("VAULT_PATH", "/Users/desrod/Documents/obsidian-notes")
 TODAY      = datetime.date.today().strftime("%Y-%m-%d-%A")
-NOTE       = os.path.join(VAULT, "Daily Notes", f"{TODAY}.md")
+NOTE       = os.path.join(VAULT_PATH, "Daily Notes", f"{TODAY}.md")
 
 ENTRY_NAME = sys.argv[1] if len(sys.argv) > 1 else "New Task"
 
@@ -33,7 +33,7 @@ if not match:
     sys.exit(1)
 
 data    = json.loads(match.group(2))
-now_iso = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z")
+now_iso = datetime.datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
 
 # Belt and suspenders, stop any running timers before continuing
 for entry in data["entries"]:
@@ -45,7 +45,7 @@ data["entries"].append(
     {"name": ENTRY_NAME, "startTime": now_iso, "endTime": None, "subEntries": None}
 )
 
-new_block = match.group(1) + json.dumps(data) + match.group(3)
+new_block   = match.group(1) + json.dumps(data) + match.group(3)
 new_content = content[: match.start()] + new_block + content[match.end() :]
 
 with open(NOTE, "w") as f:
