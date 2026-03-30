@@ -9,7 +9,7 @@ from datetime import timezone
 
 # You will need to adjust this naming convention, my notes are
 # named '2026-03-29-Sunday.md' for example
-VAULT_PATH = os.environ.get("VAULT_PATH", "/Users/desrod/Documents/obsidian-notes")
+VAULT_PATH = os.environ.get("VAULT_PATH", "~/Documents/obsidian-notes")
 TODAY      = datetime.date.today().strftime("%Y-%m-%d-%A")
 NOTE       = os.path.join(VAULT_PATH, "Daily Notes", f"{TODAY}.md")
 
