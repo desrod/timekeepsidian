@@ -153,22 +153,29 @@ elif args.resume is not None:
                 None,
             )
             if original:
-                original["subEntries"] = [
+                existing_subs = original.get("subEntries") or []
+                if not existing_subs and original.get("startTime"):
+                    # Simple entry: preserve original run as the first sub-entry
+                    existing_subs = [
+                        {
+                            "name": "Part 1",
+                            "startTime": original["startTime"],
+                            "endTime": original["endTime"],
+                            "subEntries": None,
+                        }
+                    ]
+                    original["startTime"] = None
+                    original["endTime"] = None
+                n = len(existing_subs) + 1
+                existing_subs.append(
                     {
-                        "name": "Part 1",
-                        "startTime": original["startTime"],
-                        "endTime": original["endTime"],
-                        "subEntries": None,
-                    },
-                    {
-                        "name": "Part 2",
+                        "name": f"Part {n}",
                         "startTime": now_iso,
                         "endTime": None,
                         "subEntries": None,
-                    },
-                ]
-                original["startTime"] = None
-                original["endTime"] = None
+                    }
+                )
+                original["subEntries"] = existing_subs
                 msg = f"Resumed '{original['name']}'"
             else:
                 data["entries"].append(
