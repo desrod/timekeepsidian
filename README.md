@@ -1,12 +1,10 @@
-# timekeepsidian
+# keepsidian
 
 A small command-line utility for injecting [TimeKeep](https://github.com/Tarkin25/obsidian-timekeep) timer entries directly into your Obsidian daily notes from the terminal — no mouse required.
 
 ## What it does
 
 If you use the TimeKeep plugin in Obsidian and keep a daily note, this script lets you start a named timer from the command line. It finds today's note, locates the `timekeep` code block, stops any currently running timer, and appends a new running entry with whatever name you pass in. Handy when you're already in a terminal and don't want to context-switch just to click a button.
-
-![Inject TimeKeep timers from CLI](timekeepsidian.png "Start timer in TimeKeep")
 
 ## Requirements
 
@@ -33,8 +31,6 @@ python3 inject-time.py "Task name here"
 ```
 
 If you don't pass a name it defaults to `New Task`.
-
-The script expects daily notes to be named like `2026-03-29-Sunday.md` and to live in a `Daily Notes/` folder inside your vault. If your setup is different, edit the `TODAY` and `NOTE` lines near the top of the file — it's two lines and should be obvious.
 
 ### Example
 
