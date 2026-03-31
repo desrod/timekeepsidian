@@ -1,19 +1,30 @@
 #!/usr/bin/env python3
 
-import datetime
 import json
 import os
 import re
 import sys
-from datetime import timezone
 
-# You will need to adjust this naming convention, my notes are
-# named '2026-03-29-Sunday.md' for example
-VAULT_PATH = os.environ.get("VAULT_PATH", "~/Documents/obsidian-notes")
-TODAY      = datetime.date.today().strftime("%Y-%m-%d-%A")
-NOTE       = os.path.join(VAULT_PATH, "Daily Notes", f"{TODAY}.md")
+import pendulum
 
-ENTRY_NAME = sys.argv[1] if len(sys.argv) > 1 else "New Task"
+VAULT_PATH = os.environ.get("VAULT_PATH", "/Users/desrod/Documents/obsidian-notes")
+
+
+def load_daily_note_settings(vault_path):
+    settings_path = os.path.join(vault_path, ".obsidian", "daily-notes.json")
+    if not os.path.exists(settings_path):
+        return "Daily Notes", "YYYY-MM-DD-dddd"
+    with open(settings_path) as f:
+        settings = json.load(f)
+    return settings.get("folder", "Daily Notes"), settings.get(
+        "format", "YYYY-MM-DD-dddd"
+    )
+
+
+DAILY_FOLDER, DATE_FMT = load_daily_note_settings(VAULT_PATH)
+TODAY                  = pendulum.now().format(DATE_FMT)
+NOTE                   = os.path.join(VAULT_PATH, DAILY_FOLDER, f"{TODAY}.md")
+ENTRY_NAME             = sys.argv[1] if len(sys.argv) > 1 else "New Task"
 
 if not os.path.exists(NOTE):
     print(f"Note not found: {NOTE}")
@@ -32,8 +43,8 @@ if not match:
             print(repr(line))
     sys.exit(1)
 
-data    = json.loads(match.group(2))
-now_iso = datetime.datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+data = json.loads(match.group(2))
+now_iso = pendulum.now("UTC").format("YYYY-MM-DDTHH:mm:ss.SSS[Z]")
 
 # Belt and suspenders, stop any running timers before continuing
 for entry in data["entries"]:
