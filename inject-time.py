@@ -28,7 +28,12 @@ action.add_argument(
     "-p", "--pause", action="store_true", help="Pause the running timer"
 )
 action.add_argument(
-    "-r", "--resume", action="store_true", help="Resume the last paused timer"
+    "-r",
+    "--resume",
+    nargs="?",
+    const="",
+    metavar="NAME",
+    help="Resume the last paused timer, or a specific timer by exact name",
 )
 parser.add_argument(
     "-v",
@@ -69,7 +74,7 @@ if not match:
 data = json.loads(match.group(2))
 now_iso = pendulum.now("UTC").format("YYYY-MM-DDTHH:mm:ss.SSS[Z]")
 
-# Find the running entry. For subEntry-based timers, close the running sub immediately
+# Find the running entry. For subEntry-based timers, close the running subEntry immediately
 # since that's correct for every action. For simple entries, defer closing to each branch
 # so -p can convert the entry rather than just stamping an endTime.
 running = None
@@ -105,11 +110,12 @@ if args.pause:
         ]
         msg = f"Paused '{running['name']}'"
 
-elif args.resume:
+elif args.resume is not None:
     # Close a simple running entry if one slipped through
     if running and not running.get("subEntries"):
         running["endTime"] = now_iso
-    # Find the most recently paused subEntry-based timer (last sub has an endTime)
+    # Find the most recently paused subEntry-based timer (last subEntry has an endTime),
+    # optionally filtered to an exact name when one was provided
     paused = next(
         (
             e
@@ -117,6 +123,7 @@ elif args.resume:
             if e.get("subEntries")
             and e["subEntries"][-1].get("endTime")
             and e is not running
+            and (not args.resume or e["name"] == args.resume)
         ),
         None,
     )
@@ -132,13 +139,61 @@ elif args.resume:
         )
         msg = f"Resumed '{paused['name']}'"
     else:
-        # Fallback: no paused subEntry timer found, restart last completed entry by name
-        last = next((e for e in reversed(data["entries"]) if e.get("endTime")), None)
-        name = last["name"] if last else args.name
-        data["entries"].append(
-            {"name": name, "startTime": now_iso, "endTime": None, "subEntries": None}
-        )
-        msg = f"Resumed '{name}'"
+        # Fallback: no paused subEntry timer found
+        if args.resume:
+            # Named resume: convert the original simple entry in-place if it exists
+            original = next(
+                (
+                    e
+                    for e in data["entries"]
+                    if e["name"] == args.resume
+                    and e.get("startTime")
+                    and e.get("endTime")
+                ),
+                None,
+            )
+            if original:
+                original["subEntries"] = [
+                    {
+                        "name": "Part 1",
+                        "startTime": original["startTime"],
+                        "endTime": original["endTime"],
+                        "subEntries": None,
+                    },
+                    {
+                        "name": "Part 2",
+                        "startTime": now_iso,
+                        "endTime": None,
+                        "subEntries": None,
+                    },
+                ]
+                original["startTime"] = None
+                original["endTime"] = None
+                msg = f"Resumed '{original['name']}'"
+            else:
+                data["entries"].append(
+                    {
+                        "name": args.resume,
+                        "startTime": now_iso,
+                        "endTime": None,
+                        "subEntries": None,
+                    }
+                )
+                msg = f"Resumed '{args.resume}'"
+        else:
+            last = next(
+                (e for e in reversed(data["entries"]) if e.get("endTime")), None
+            )
+            name = last["name"] if last else args.name
+            data["entries"].append(
+                {
+                    "name": name,
+                    "startTime": now_iso,
+                    "endTime": None,
+                    "subEntries": None,
+                }
+            )
+            msg = f"Resumed '{name}'"
 
 else:
     # Default: close simple running entry (subEntry-based was already closed above), start new
